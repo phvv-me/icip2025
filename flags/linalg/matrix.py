@@ -12,6 +12,5 @@ def symsqrtinv(matrix: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     The inverse of the square root of the input matrix
     """
     L, V = torch.linalg.eigh(matrix)
-    # threshold = L.max(-1).values * L.size(-1) * eps
     L_inv_sqrt = torch.where(L > eps, L.rsqrt(), 0).diag()
     return V @ L_inv_sqrt @ V.mH

@@ -9,9 +9,10 @@ import torch
 from methodtools import lru_cache
 from tqdm import tqdm
 
+from flags.models.hf import BaseHuggingFaceModel, LanguageHuggingFaceModel
+
 from ..abstract import BaseModel
 from ..linalg import gram_schmidt
-from ..models import HuggingFaceModel
 from ..nlp import MultiLingualWordNetSynsets, SupportedLanguages
 from ..utils.stdlib import batchedlist
 from ..utils.tensor import unsqueeze_like
@@ -248,12 +249,12 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Returns:
             Concept: All concepts with their synsets and flags.
         """
-        synsets = self.data.get_all_synsets(self.model._tokenizer, *args, **kwargs)
+        synsets = self.data.get_all_synsets(self.model.tokenizer, *args, **kwargs)
         return self.compute_concept(synsets)
 
     @lru_cache()
     def get_all_words_flags(self, *args, **kwargs) -> Flag:
-        synsets = self.data.get_all_synsets(self.model._tokenizer, *args, **kwargs)
+        synsets = self.data.get_all_synsets(self.model.tokenizer, *args, **kwargs)
         return Flag(tensor=self._make_word_flags(synsets["tokens"]).mT.transpose_(0, 1))
 
     def compute_concept(self, synsets: pd.DataFrame) -> Concept:
@@ -263,7 +264,7 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         )
 
     def get_concept(self, synset: str, *args, **kwargs) -> Concept:
-        synsets = self.data.get_all_synsets(self.model._tokenizer, *args, **kwargs)
+        synsets = self.data.get_all_synsets(self.model.tokenizer, *args, **kwargs)
         synsets = synsets[synsets["synset"] == synset]
         if synsets.empty:
             raise ValueError(f"Synset '{synset}' not found.")
@@ -284,7 +285,7 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """
         inputs = self.model.make_input(input_text, padding=True)
         gen = self.model._model.generate(
-            *args, **inputs, pad_token_id=self.model._tokenizer.pad_token_id, **kwargs
+            *args, **inputs, pad_token_id=self.model.tokenizer.pad_token_id, **kwargs
         )
         return self.model.decode(gen)
 
@@ -519,13 +520,14 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
     def from_model_id(
         cls,
         id: str,
+        model_cls: type[BaseHuggingFaceModel] = LanguageHuggingFaceModel,
         language_codes: SupportedLanguages | None = None,
         synsets_kwargs={},
         *args,
         **kwargs,
     ) -> FlagUnembeddingRepresentation:
-        return FlagUnembeddingRepresentation(
-            model=HuggingFaceModel(id=id, *args, **kwargs),
+        return cls(
+            model=model_cls(id=id, *args, **kwargs),
             data=MultiLingualWordNetSynsets(
                 language_codes=language_codes or SupportedLanguages.from_model_id(id),
                 **synsets_kwargs,

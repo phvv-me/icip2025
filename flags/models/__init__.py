@@ -1,1 +1,1 @@
-from .hf import HuggingFaceModel
+from .hf import LanguageHuggingFaceModel, VisionLanguageHuggingFaceModel

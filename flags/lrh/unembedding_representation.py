@@ -6,7 +6,7 @@ from torch import Tensor
 
 from ..abstract import BaseModel
 from ..linalg import symsqrtinv
-from ..models import HuggingFaceModel
+from ..models.hf import BaseHuggingFaceModel
 
 
 class LinearUnembeddingRepresentation(BaseModel, arbitrary_types_allowed=True):
@@ -14,7 +14,7 @@ class LinearUnembeddingRepresentation(BaseModel, arbitrary_types_allowed=True):
     Basic manipulation of linear unembedding representations from a HuggingFace model.
     """
 
-    model: HuggingFaceModel
+    model: BaseHuggingFaceModel
 
     meaningless_vector: Literal["pad", "mean"] | None = "mean"
     normalize_token_representations: bool = False
