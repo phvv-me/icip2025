@@ -4,6 +4,7 @@ Module for working with HuggingFace models, providing a wrapper class with quant
 
 import os
 import re
+from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Any, Optional, Type, Union
 
@@ -49,7 +50,7 @@ AWQ = (
 )
 
 
-class BaseHuggingFaceModel(BaseModel, arbitrary_types_allowed=True):
+class BaseHuggingFaceModel(BaseModel, ABC, arbitrary_types_allowed=True):
     """
     A wrapper class for HuggingFace models with support for various quantization methods.
 
@@ -68,9 +69,7 @@ class BaseHuggingFaceModel(BaseModel, arbitrary_types_allowed=True):
 
     id: str
     family: Optional[str] = None
-
     cls: Type[PreTrainedModel] = AutoModelForCausalLM
-
     device_map: Union[int, str] = "auto"
     torch_dtype: Union[torch.dtype, str] = "auto"
     trust_remote_code: bool = True
@@ -103,28 +102,49 @@ class BaseHuggingFaceModel(BaseModel, arbitrary_types_allowed=True):
         """String representation of the model."""
         return self.id if self.family is None else self.name
 
-    def _compile(self):
+    def _compile(self) -> None:
+        """Compile the model using torch.compile() for potential speedup."""
         self._model.forward = torch.compile(
             self._model.forward, mode="reduce-overhead", fullgraph=True
         )
 
     @staticmethod
-    def is_hf_online():
+    def is_hf_online() -> bool:
+        """Check if HuggingFace Hub is accessible.
+
+        Returns:
+            bool: True if HuggingFace Hub is accessible
+        """
         return not bool(os.getenv("HF_HUB_OFFLINE"))
 
     @classmethod
-    def login_to_hf_if_online(cls):
+    def login_to_hf_if_online(cls) -> None:
+        """Login to HuggingFace Hub if online and token is available."""
         if is_online() and cls.is_hf_online():
             login(os.environ["HUGGING_FACE_LOGIN_TOKEN"], add_to_git_credential=True)
 
     def load(self) -> None:
-        """
-        Load the model and tokenizer from HuggingFace Hub.
-        Handles login if online and sets up the model with specified configuration.
-        """
-        self._model = self.cls.from_pretrained(**self._model_kwargs())
+        """Load the model and tokenizer from HuggingFace Hub.
 
-    def _model_kwargs(self):
+        This method:
+        1. Gathers model configuration kwargs
+        2. Loads the model with proper quantization if specified
+        3. Initializes the model on the specified device
+
+        Raises:
+            RuntimeError: If model loading fails
+        """
+        try:
+            self._model = self.cls.from_pretrained(**self._model_kwargs())
+        except Exception as e:
+            raise RuntimeError(f"Failed to load model: {e}")
+
+    def _model_kwargs(self) -> dict[str, Any]:
+        """Build keyword arguments for model initialization.
+
+        Returns:
+            Dict[str, Any]: Configuration kwargs for model loading
+        """
         kwargs = dict(
             pretrained_model_name_or_path=self.id,
             device_map=self.device_map,
@@ -139,27 +159,46 @@ class BaseHuggingFaceModel(BaseModel, arbitrary_types_allowed=True):
 
         return kwargs
 
-    def _is_meta_llama(self):
+    def _is_meta_llama(self) -> bool:
+        """Check if current model is a Meta LLaMA model.
+
+        Returns:
+            bool: True if model is Meta-LLaMA-3
+        """
         return "Meta-Llama-3" in self.id
 
-    def _fix_llama_model(self):
+    def _fix_llama_model(self) -> None:
+        """Apply LLaMA-specific model fixes for tokens and padding."""
         self._fix_pad_token_in_llama_model()
         self._fix_eos_token_in_llama_model()
         self._tokenizer.padding_side = "left"
 
-    def _fix_token(self, token_str, token_type):
+    def _fix_token(self, token_str: str, token_type: str) -> None:
+        """Fix specific token in the tokenizer.
+
+        Some tokens in LLaMA models are not correctly set by the tokenizer,
+        so we must fix it manually.
+
+        Args:
+            token_str: Token string to fix
+            token_type: Type of token (pad, eos, etc)
+        """
         token_id = self._tokenizer.convert_tokens_to_ids(token_str)
         setattr(self._tokenizer, f"{token_type}_token", token_str)
         setattr(self._tokenizer, f"{token_type}_token_id", token_id)
 
-    def _fix_pad_token_in_llama_model(self):
+    def _fix_pad_token_in_llama_model(self) -> None:
+        """Fix padding token specifically for LLaMA models."""
         self._fix_token("<|eot_id|>", "pad")
 
-    def _fix_eos_token_in_llama_model(self):
+    def _fix_eos_token_in_llama_model(self) -> None:
+        """Fix end-of-sequence token specifically for LLaMA models."""
         self._fix_token("<|end_of_text|>", "eos")
 
     @property
     def model(self) -> PreTrainedModel:
+        if not hasattr(self, "_model"):
+            raise RuntimeError("Model not loaded. Call load() first.")
         return self._model
 
     @property
@@ -224,8 +263,9 @@ class BaseHuggingFaceModel(BaseModel, arbitrary_types_allowed=True):
         return self._model.get_input_embeddings()
 
     @property
+    @abstractmethod
     def unembedding_matrix(self) -> torch.Tensor:
-        return self._model.lm_head.weight.data.detach()
+        raise NotImplementedError
 
     @property
     def _correct_torch_dtype(self) -> torch.dtype:

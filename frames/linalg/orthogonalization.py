@@ -36,3 +36,8 @@ def gram_schmidt(
 
     # Move the dimension back to its original position
     return Q.transpose(dim, -1)
+
+
+def solve_procrustes(vectors: torch.Tensor) -> torch.Tensor:
+    U, _, Vh = torch.linalg.svd(vectors.float(), full_matrices=False)
+    return (U @ Vh).to(vectors.dtype)

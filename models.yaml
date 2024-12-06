@@ -88,36 +88,3 @@
 #   family: Qwen 2 Math
 # - id: Qwen/Qwen2-Math-1.5B-Instruct
 #   family: Qwen 2 Math
-
-# OpenELM:
-# - id: apple/OpenELM-3B
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-3B-Instruct
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-1_1B
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-1_1B-Instruct
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-450M
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-450M-Instruct
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-270M
-#   family: OpenELM
-#   attn_implementation: eager
-# - id: apple/OpenELM-270M-Instruct
-#   family: OpenELM
-#   attn_implementation: eager
-
-# DCLM:
-# - id: apple/DCLM-7B-8k
-#   family: DCLM
-# - id: apple/DCLM-7B
-#   family: DCLM
-

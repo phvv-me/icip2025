@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from typing import Iterator, List, Union
 
 import numpy as np
@@ -9,165 +8,35 @@ import torch
 from methodtools import lru_cache
 from tqdm import tqdm
 
-from flags.models.hf import BaseHuggingFaceModel, LanguageHuggingFaceModel
+from frames.linalg.orthogonalization import solve_procrustes
+from frames.models.hf import BaseHuggingFaceModel, LanguageHuggingFaceModel
 
-from ..abstract import BaseModel
-from ..linalg import gram_schmidt
+from ..linalg import Frame
 from ..nlp import MultiLingualWordNetSynsets, SupportedLanguages
 from ..utils.stdlib import batchedlist
-from ..utils.tensor import unsqueeze_like
-from .unembedding_representation import LinearUnembeddingRepresentation
+from .concept import Concept
+from .unembedding import LinearUnembeddingRepresentation
 
 
-class Flag(BaseModel, arbitrary_types_allowed=True):
-    tensor: torch.Tensor
-
-    def __str__(self) -> str:
-        count, synsets, dimension, rank = self.tensor.shape
-        return f"{self.__class__.__name__}({synsets=}, {count=}, {dimension=}, {rank=})"
-
-    def __repr__(self) -> str:
-        return str(self)
-
-    def __rmul__(self, other: Flag | torch.Tensor) -> torch.Tensor:
-        """Compute the inner product of two concepts."""
-        other = Flag(tensor=other) if not isinstance(other, Flag) else other
-        return self._inner_product(other.tensor, self.tensor)
-
-    def __mul__(self, other: Flag) -> torch.Tensor:
-        """Compute the inner product of two concepts."""
-        return other.__rmul__(self)
-
-    def __sub__(self, other: Flag) -> torch.Tensor:
-        """Subtract one concept from another."""
-        return self._subtract_flags(self.tensor, other.tensor)
-
-    @cached_property
-    def rank(self) -> torch.Tensor:
-        """Compute the rank of the concept's flag."""
-        return self._rank(self.tensor)
-
-    @staticmethod
-    def _rank(tensor: torch.Tensor) -> torch.Tensor:
-        """Compute the rank of a tensor."""
-        # FIXME: this is an upper bound for torch.linalg.matrix_rank
-        return tensor.ne(0).any(dim=-2).sum(-1)
-
-    @classmethod
-    def _max_rank(
-        cls, flag1: torch.Tensor, flag2: torch.Tensor, full_comparison: bool = True
-    ) -> torch.Tensor:
-        """Compute the maximum rank between two tensors."""
-        rank1 = cls._rank(flag1)
-        rank2 = cls._rank(flag2)
-
-        if full_comparison:
-            rank1 = rank1.unsqueeze(-1)
-            rank2 = unsqueeze_like(rank2, rank1, direction="left")
-
-        return torch.max(rank1, rank2)
-
-    def _inner_product(
-        self, flags1: torch.Tensor, flags2: torch.Tensor
-    ) -> torch.Tensor:
-        max_rank = self._max_rank(flags1, flags2)
-        traces = torch.einsum("...mdk,ndk->...mn", flags1, flags2)
-        return traces / max_rank
-
-    def _batched_inner_product(
-        self, flags1: torch.Tensor, flags2: torch.Tensor
-    ) -> torch.Tensor:
-        max_rank = self._max_rank(flags1, flags2, full_comparison=False)
-        traces = torch.einsum("...ndk,...ndk->...n", flags1, flags2)
-        return traces / max_rank
-
-    def similarity(self, other: Flag | torch.Tensor) -> torch.Tensor:
-        # computes similarity (inner product) between list of flags in order
-        #  so that the first flag in self is compared to the first flag in other
-        #  and so on
-        other_tensor = other.tensor if isinstance(other, Flag) else other
-        return self._batched_inner_product(self.tensor, other_tensor)
-
-    @staticmethod
-    def _subtract_flags(flag1: torch.Tensor, flag2: torch.Tensor) -> torch.Tensor:
-        """Subtract one flag from another and perform Gram-Schmidt orthogonalization."""
-        return gram_schmidt(flag1 - flag2, dim=-2)
-
-    @property
-    def orthogonality(self) -> torch.Tensor:
-        """Compute the flag's matrix rank / num vectors"""
-        return torch.linalg.matrix_rank(self.tensor) / self.rank
-
-
-class Concept(Flag):
-    """A single or set of concept flags."""
-
-    synset: str | list[str]
-
-    def __getitem__(self, synset: str) -> Concept:
-        """Get a single concept by its synset."""
-        idx = self._find_synset_index(synset)
-        return Concept(synset=synset, tensor=self.tensor[[idx]])
-
-    def __sub__(self, other: Concept) -> Concept:
-        """Subtract one concept from another."""
-        return Concept(
-            synset=" - ".join([self.synset, other.synset]),
-            tensor=super().__sub__(other),
-        )
-
-    def __len__(self) -> int:
-        """Get the length of the concept's flag."""
-        return self.tensor.size(-1)
-
-    def __str__(self) -> str:
-        count, dimension, rank = self.tensor.shape
-        if count == 1:
-            name = self.synset
-            return f"{self.__class__.__name__}({name=}, {dimension=}, {rank=})"
-        return f"{self.__class__.__name__}({count=}, {dimension=}, {rank=})"
-
-    @property
-    def name(self) -> str:
-        """Get the name of the concept."""
-        return self.synset
-
-    @property
-    def device(self) -> torch.device:
-        """Get the device of the concept's flag."""
-        return self.tensor.device
-
-    @property
-    def complemented(self) -> torch.Tensor:
-        """Get the orthogonal complement of the concept's flag."""
-        return torch.linalg.svd(self.tensor.float()).U
-
-    def _find_synset_index(self, synset: str) -> pd.Index:
-        """Find the index of a synset in the dataframe."""
-        if isinstance(self.synset, str):
-            raise ValueError("Concept has only one synset.")
-        return self.synset.index(synset)
-
-
-class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
+class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
     """
-    A class for flag-based unembedding representation operations.
+    A class for frame-based unembedding representation operations.
     """
 
     data: MultiLingualWordNetSynsets = MultiLingualWordNetSynsets()
 
-    def average_flags(self, word_flags: torch.Tensor, dim: int = -3) -> torch.Tensor:
+    def average_frames(self, word_frames: torch.Tensor, dim: int = -3) -> torch.Tensor:
         """
-        Average flags across a specified dimension.
+        Average frames across a specified dimension.
 
         Args:
-            word_flags (torch.Tensor): Tensor of word flags.
+            word_frames (torch.Tensor): Tensor of word frames.
             dim (int): Dimension to average over.
 
         Returns:
-            torch.Tensor: Flag mean.
+            torch.Tensor: frame mean.
         """
-        return gram_schmidt(word_flags.sum(dim=dim))
+        return solve_procrustes(word_frames.sum(dim=dim))
 
     def _compute_all_concepts(self, *args, **kwargs) -> torch.Tensor:
         """
@@ -178,15 +47,15 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """
         return torch.cat(list(self._yield_concepts(*args, **kwargs))).mT
 
-    def _make_word_flags(self, tokens: Union[List[int], pd.Series]) -> torch.Tensor:
+    def _make_word_frames(self, tokens: Union[List[int], pd.Series]) -> torch.Tensor:
         """
-        Create word flags from tokens.
+        Create word frames from tokens.
 
         Args:
             tokens (Union[List[int], pd.Series]): List or Series of token IDs.
 
         Returns:
-            torch.Tensor: Tensor of word flags.
+            torch.Tensor: Tensor of word frames.
         """
         return self.get_token_representations(np.stack(tokens))
 
@@ -227,7 +96,7 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         self, tokens: np.ndarray, batch_size: int = 1 << 6, *args, **kwargs
     ) -> Iterator[torch.Tensor]:
         """
-        Yield concept flags in batches.
+        Yield concept frames in batches.
 
         Args:
             tokens (np.ndarray): Array of tokens.
@@ -238,8 +107,8 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """
         num_batches = max(len(tokens) // batch_size, 1)
         for batch in np.array_split(tokens, num_batches):
-            words = self._make_word_flags(batch)
-            yield self.average_flags(words, *args, **kwargs)
+            words = self._make_word_frames(batch)
+            yield self.average_frames(words, *args, **kwargs)
 
     @lru_cache()
     def get_all_concepts(self, *args, **kwargs) -> Concept:
@@ -247,15 +116,17 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Get all concepts.
 
         Returns:
-            Concept: All concepts with their synsets and flags.
+            Concept: All concepts with their synsets and frames.
         """
         synsets = self.data.get_all_synsets(self.model.tokenizer, *args, **kwargs)
         return self.compute_concept(synsets)
 
     @lru_cache()
-    def get_all_words_flags(self, *args, **kwargs) -> Flag:
+    def get_all_words_frames(self, *args, **kwargs) -> Frame:
         synsets = self.data.get_all_synsets(self.model.tokenizer, *args, **kwargs)
-        return Flag(tensor=self._make_word_flags(synsets["tokens"]).mT.transpose_(0, 1))
+        return Frame(
+            tensor=self._make_word_frames(synsets["tokens"]).mT.transpose_(0, 1)
+        )
 
     def compute_concept(self, synsets: pd.DataFrame) -> Concept:
         return Concept(
@@ -347,10 +218,10 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
 
             last_hs = hidden_states[-1].to(guide.device)
             last_hs_padded = torch.nn.functional.pad(last_hs, (0, 0, 0, len(guide) - 1))
-            last_hs_flags = last_hs_padded.unfold(-2, size=len(guide), step=1).squeeze_(
-                0
-            )
-            projections = last_hs_flags * guide
+            last_hs_frames = last_hs_padded.unfold(
+                -2, size=len(guide), step=1
+            ).squeeze_(0)
+            projections = last_hs_frames * guide
 
             max_probe = projections.cumsum(-2).reshape(n, k, -1).max(-2)
 
@@ -465,7 +336,7 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """
         names = self.probe_topk(input_text, k, *args, **kwargs)[-1]
         concepts, indices = self._topk_index_probes(input_text, k, *args, **kwargs)
-        last_step_top_probes = concepts.flag.mT[indices[-1]].to(self.model.device).mT
+        last_step_top_probes = concepts.frame.mT[indices[-1]].to(self.model.device).mT
         temp_fix = last_step_top_probes[..., 0].mT
         ig = self.model.integrated_gradients(
             input_text, temp_fix, steps, vectorize=True
@@ -513,8 +384,10 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         )
         last_hs = self.model.forward_last_hiden_state(x).to(concept.device)
         last_hs_padded = torch.nn.functional.pad(last_hs, (0, 0, 0, len(concept) - 1))
-        last_hs_flags = last_hs_padded.unfold(-2, size=len(concept), step=1).squeeze_(0)
-        return last_hs_flags * concept
+        last_hs_frames = last_hs_padded.unfold(-2, size=len(concept), step=1).squeeze_(
+            0
+        )
+        return last_hs_frames * concept
 
     @classmethod
     def from_model_id(
@@ -525,7 +398,7 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
         synsets_kwargs={},
         *args,
         **kwargs,
-    ) -> FlagUnembeddingRepresentation:
+    ) -> FrameUnembeddingRepresentation:
         return cls(
             model=model_cls(id=id, *args, **kwargs),
             data=MultiLingualWordNetSynsets(
@@ -560,11 +433,11 @@ class FlagUnembeddingRepresentation(LinearUnembeddingRepresentation):
 
         return self.generate_with_topk_guide(sentences, *args, guide=guide, **kwargs)
 
-    def _orthogonality(self, tokens: list[int]) -> torch.Tensor:
-        """Compute the flag's matrix rank / num vectors"""
-        return Flag(tensor=self._make_word_flags(tokens).mT.float()).orthogonality
+    def _relative_rank(self, tokens: list[int]) -> torch.Tensor:
+        """Compute the frame's matrix rank / num vectors"""
+        return Frame(tensor=self._make_word_frames(tokens).mT.float()).relative_rank
 
-    def compute_orthogonality(self, tokens: list[int] | pd.Series, batch_size: int):
+    def compute_relative_rank(self, tokens: list[int] | pd.Series, batch_size: int):
         num_batches = max(len(tokens) // batch_size, 2)
         all_batches = np.array_split(tokens, num_batches)
-        return torch.cat([self._orthogonality(batch) for batch in tqdm(all_batches)])
+        return torch.cat([self._relative_rank(batch) for batch in tqdm(all_batches)])

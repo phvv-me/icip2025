@@ -17,6 +17,8 @@ wn2021.add_exomw()
 
 
 class SupportedLanguages(tuple, Enum):
+    """LLM supported languages for WordNet synsets and lemmas."""
+
     # Gemma / Phi Technical papers indicate they are more reliable in english,
     # and we confirmed that using more languages can lead more easily to harmful outputs
     Default = "eng"
