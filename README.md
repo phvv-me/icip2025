@@ -1,4 +1,4 @@
-# 🎌 Flag Representation Hypothesis
+# 🎌 Frame Representation Hypothesis
 
 > **Authors: [Pedro Valois](https://phvv.me/), [Kazuhiro Fukui](https://www.cs.tsukuba.ac.jp/~kfukui/english/indexE.html), [Lincon Souza](https://dblp.org/pid/196/6193.html), [Erica Kido Shimomoto](https://ericashimomoto.github.io)**
 
@@ -7,7 +7,7 @@ The Frame Representation Hypothesis is a robust framework for understanding and 
 [![arXiv](https://img.shields.io/badge/arXiv-2409.06666-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/0)
 [![code](https://img.shields.io/badge/Github-Code-keygen.svg?logo=github)](https://github.com/Pedrexus/flag-representation-hypothesis)
 
-<div align="center"><img src="./images/overview.png" width="50%"/></div>
+<div align="center"><img src="./images/overview.jpg" width="50%"/></div>
 <!-- <div align="center"><img src="./images/top_k_guided_decoding.png" width="50%"/></div> -->
 
 ## 💡 Highlights
@@ -72,4 +72,4 @@ If our work is useful for you, please cite as:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Pedrexus/flag-representation-hypothesis&type=Date)](https://star-history.com/#Pedrexus/flag-representation-hypothesis&Date)
+<!-- [![Star History Chart](https://api.star-history.com/svg?repos=Pedrexus/flag-representation-hypothesis&type=Date)](https://star-history.com/#Pedrexus/flag-representation-hypothesis&Date) -->
