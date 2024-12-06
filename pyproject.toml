@@ -1,7 +1,7 @@
 [project]
-name = "flag-representation-hypothesis"
+name = "frame-representation-hypothesis"
 version = "0.1.0"
-description = "The Flag Representation Hypothesis is a robust framework for understanding and controlling LLMs."
+description = "The Frame Representation Hypothesis is a robust framework for understanding and controlling LLMs."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

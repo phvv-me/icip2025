@@ -18,7 +18,7 @@ class Frame(BaseModel, arbitrary_types_allowed=True):
     tensor: torch.Tensor  # shape: n (count) x d (dimension) x k (vectors)
 
     def __len__(self) -> int:
-        """Get the length of the concept's flag."""
+        """Get the length of the concept's frame."""
         return self.tensor.size(-1)
 
     def __rmul__(self, other: "Frame | torch.Tensor") -> torch.Tensor:
@@ -143,5 +143,5 @@ class Frame(BaseModel, arbitrary_types_allowed=True):
 
     @property
     def device(self) -> torch.device:
-        """Get the device of the concept's flag."""
+        """Get the device of the concept's frame."""
         return self.tensor.device
