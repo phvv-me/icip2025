@@ -25,8 +25,8 @@ The Frame Representation Hypothesis is a robust framework for understanding and 
 1. Clone this repository.
 
 ```shell
-git clone https://github.com/Pedrexus/flag-representation-hypothesis
-cd flag-representation-hypothesis
+git clone https://github.com/Pedrexus/frame-representation-hypothesis
+cd frame-representation-hypothesis
 ```
 
 2. Install packages.
@@ -72,4 +72,4 @@ If our work is useful for you, please cite as:
 
 ## Star History
 
-<!-- [![Star History Chart](https://api.star-history.com/svg?repos=Pedrexus/flag-representation-hypothesis&type=Date)](https://star-history.com/#Pedrexus/flag-representation-hypothesis&Date) -->
+<!-- [![Star History Chart](https://api.star-history.com/svg?repos=Pedrexus/frame-representation-hypothesis&type=Date)](https://star-history.com/#Pedrexus/frame-representation-hypothesis&Date) -->
