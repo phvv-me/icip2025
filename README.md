@@ -37,13 +37,7 @@ pip install uv
 uv sync
 ```
 
-4. Install `flash-attention`.
-
-```shell
-pip install flash-attn --no-build-isolation
-```
-
-5. Download Models
+3. Download Models
 
 Run `01_START_HERE.ipynb` to download all models.
 
