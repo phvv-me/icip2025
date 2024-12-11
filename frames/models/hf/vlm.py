@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Any, Type
 
 import torch
 from PIL import Image
@@ -37,20 +37,28 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
         return self._model.language_model.lm_head.weight.data.detach()
 
     def generate(self, image: Image.Image, text: str, *args, **kwargs):
-        messages = [
+        inputs = self.make_input(image, text)
+        return self.model.generate(*args, **inputs, **kwargs)
+
+    def make_input(self, inputs: list[dict[str, Any]], *args, **kwargs):
+        input_text = self._make_text_input(text) 
+        return self.processor(image, input_text, add_special_tokens=True, return_tensors="pt", *args, **kwargs).to(self.model.device)
+
+    def _make_text_input(self, text: str):
+        messages = self._build_simple_message(text)
+        input_text = self._convert_to_chat_template(messages)
+        return input_text
+
+    def _convert_to_chat_template(self, messages):
+        return self.processor.apply_chat_template(messages, add_generation_prompt=True)
+
+    def _build_simple_message(self, text):
+        return [
             {
                 "role": "user",
                 "content": [{"type": "image"}, {"type": "text", "text": text}],
             }
         ]
-        input_text = self.processor.apply_chat_template(
-            messages, add_generation_prompt=True
-        )
-        inputs = self.processor(
-            image, input_text, add_special_tokens=True, return_tensors="pt"
-        ).to(self.model.device)
-
-        return self.model.generate(*args, **inputs, **kwargs)
 
     def decode(self, output: torch.Tensor):
         return self.processor.batch_decode(output, skip_special_tokens=False)

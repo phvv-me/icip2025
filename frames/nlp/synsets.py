@@ -226,7 +226,7 @@ class MultiLingualWordNetSynsets(BaseModel):
         Returns:
             str: The generated filename for caching.
         """
-        filename = f".cache/wordnet/wordnet_{tokenizer.__class__.__name__.lower()}_{hash(self)}.parquet"
+        filename = f".cache/wordnet/wordnet_{tokenizer.name_or_path.lower()}_{hash(self)}.parquet"
         filepath = Path.home() / filename
         filepath.parent.mkdir(parents=True, exist_ok=True)
         return filepath

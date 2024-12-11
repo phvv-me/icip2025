@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, List, Union
+from typing import Any, Iterator, List, Union
 
 import numpy as np
 import pandas as pd
@@ -183,7 +183,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
     @torch.inference_mode()
     def _generate_with_topk_guide(
         self,
-        input_text: Union[str, List[str]],
+        inputs: list[dict[str, Any]],
         guide: Concept,
         k: int = 2,
         steps: int = 16,
@@ -192,7 +192,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Generate text with top-k guided approach.
 
         Args:
-            input_text (Union[str, List[str]]): Input text for generation.
+            input_text (list[dict[str, Any]]): Input text for generation.
             guide (Concept): Concept to guide the generation.
             k (int): Number of top candidates to consider.
             steps (int): Number of generation steps.
@@ -200,12 +200,12 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Returns:
             List[str]: Generated text.
         """
-        input_text = self._prepare_input_text(input_text)
-        n = len(input_text)
+        #  input_text = self._prepare_input_text(input_text)
+        n = len(inputs)
 
         # inputs = self.model.make_input(input_text, padding=True)["input_ids"]
 
-        inputs = self.model.make_input(input_text, padding=True)
+        inputs = self.model.make_input(inputs, padding=True)
         tokens = self._generate_candidates(inputs["input_ids"], k)[0].flatten(0, 1)
 
         for _ in range(steps):
@@ -237,21 +237,19 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
 
     def generate_with_topk_guide(
         self,
-        input_text: Union[str, List[str]],
+        inputs: list[dict[str, Any]],
         *args,
         batch_size: int = 32,
         **kwargs,
     ) -> List[str]:
-        text, probe = [], []
-        for batch in tqdm(batchedlist(input_text, batch_size)):
-            batch_text, batch_probe = self._generate_with_topk_guide(
-                batch, *args, **kwargs
-            )
-            text.extend(batch_text)
-            probe.append(batch_probe)
+        all_text, all_probe = [], []
+        for batch in tqdm(batchedlist(inputs, batch_size)):
+            text, probe = self._generate_with_topk_guide(batch, *args, **kwargs)
+            all_text.extend(text)
+            all_probe.append(probe)
 
-        n = min(p.size(-1) for p in probe)
-        return text, torch.cat([p[..., :n] for p in probe])
+        n = min(p.size(-1) for p in all_probe)
+        return all_text, torch.cat([p[..., :n] for p in all_probe])
 
     def _prepare_input_text(self, input_text: Union[str, List[str]]) -> List[str]:
         """Prepare input text for generation."""
@@ -409,7 +407,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
 
     def quick_generate_with_topk_guide(
         self,
-        sentences: list[str],
+        inputs: list[dict[str, Any]],
         guide: tuple[str, str],
         min_lemmas_per_synset: int,
         max_token_count: int,
@@ -431,7 +429,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         concept_B = self.get_concept(guide[1], *cargs) if len(guide) > 1 else None
         guide = concept_A - concept_B if concept_B else concept_A
 
-        return self.generate_with_topk_guide(sentences, *args, guide=guide, **kwargs)
+        return self.generate_with_topk_guide(inputs, *args, guide=guide, **kwargs)
 
     def _relative_rank(self, tokens: list[int]) -> torch.Tensor:
         """Compute the frame's matrix rank / num vectors"""
