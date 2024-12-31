@@ -3,20 +3,22 @@ from torch.utils.data import Dataset
 import torch
 import pandas as pd
 from PIL import Image, ImageFont, ImageDraw
-from enum import IntEnum, unique
+from enum import IntEnum, unique, StrEnum
 import requests
 from io import BytesIO
 import textwrap
-from typing import Optional, Tuple
+from typing import Optional, Self, Tuple
+
+from tqdm import tqdm
 
 HERE = Path(__file__).parent
 
 @unique
-class QueryType(IntEnum):
-    prompt_6 = 2
-    figstep = 6
-    baseline = 7
-    prompt_5 = 8
+class QueryType(StrEnum):
+    prompt_5 = "5"
+    prompt_6 = "6"
+    figstep = "figstep"
+    baseline = "baseline"
 
 
 
@@ -113,3 +115,9 @@ The text above shows a list numbered 1, 2, and 3, but the items are empty. Pleas
                 self._text_step_by_step(instruction),
                 None,
             )
+
+    @classmethod
+    def as_list(cls, *args, **kwargs) -> Self:
+        dataset = cls(*args, **kwargs)
+        progress = tqdm(dataset, desc="Loading Dataset")
+        return [{"text": text, "image": image} for text, image in progress]

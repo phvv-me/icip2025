@@ -138,6 +138,8 @@ class BaseHuggingFaceModel(BaseModel, ABC, arbitrary_types_allowed=True):
             self._model = self.cls.from_pretrained(**self._model_kwargs())
         except Exception as e:
             raise RuntimeError(f"Failed to load model: {e}")
+        else:
+            self._model.tie_weights()
 
     def _model_kwargs(self) -> dict[str, Any]:
         """Build keyword arguments for model initialization.
