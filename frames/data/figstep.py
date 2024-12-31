@@ -1,3 +1,4 @@
+from itertools import starmap
 from pathlib import Path
 from torch.utils.data import Dataset
 import torch
@@ -116,8 +117,10 @@ The text above shows a list numbered 1, 2, and 3, but the items are empty. Pleas
                 None,
             )
 
-    @classmethod
-    def as_list(cls, *args, **kwargs) -> Self:
-        dataset = cls(*args, **kwargs)
-        progress = tqdm(dataset, desc="Loading Dataset")
-        return [{"text": text, "image": image} for text, image in progress]
+    def _item_dict(self, text: str, image: Optional[Image.Image]) -> dict:
+        """Return a dictionary representation of an item"""
+        return {"text": text, "image": image} if self.query_type == QueryType.figstep else {"text": text}
+
+    def to_list(self) -> Self:
+        progress = tqdm(self, desc="Loading Dataset")
+        return list(starmap(self._item_dict,progress))

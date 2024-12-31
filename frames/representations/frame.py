@@ -225,9 +225,10 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
             inputs["input_ids"] = tokens.flatten(0,1)
 
             # fix cross attention
-            cam = inputs["cross_attention_mask"]
-            new_row = torch.ones(k, 1, 1, cam.size(-1), device=cam.device, dtype=cam.dtype)
-            inputs["cross_attention_mask"] = torch.cat([cam, new_row], dim=1)
+            if "cross_attention_mask" in inputs:
+                cam = inputs["cross_attention_mask"]
+                new_row = torch.ones(k, 1, 1, cam.size(-1), device=cam.device, dtype=cam.dtype)
+                inputs["cross_attention_mask"] = torch.cat([cam, new_row], dim=1)
 
             sequences, hidden_states = self._generate_candidates(inputs, k)
 
