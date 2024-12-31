@@ -161,3 +161,4 @@ downloads
 /evaluation/
 
 output.ipynb
+.deepeval*

@@ -1,4 +1,4 @@
-from typing import Any, Type
+from typing import Any, Type, TypedDict
 
 import torch
 from PIL import Image
@@ -10,6 +10,10 @@ from transformers import (
 
 from ...utils.stdlib import is_online
 from .base import BaseHuggingFaceModel
+
+class VLMInput(TypedDict):
+    text: str
+    image: Image.Image
 
 
 class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
@@ -26,6 +30,7 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
             pretrained_model_name_or_path=self.id,
             trust_remote_code=self.trust_remote_code,
             local_files_only=not is_online(),
+            padding_side='left',
         )
 
     @property
@@ -36,13 +41,13 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
     def unembedding_matrix(self) -> torch.Tensor:
         return self._model.language_model.lm_head.weight.data.detach()
 
-    def generate(self, image: Image.Image, text: str, *args, **kwargs):
-        inputs = self.make_input(image, text)
+    def generate(self, text: str, image: Image.Image, *args, **kwargs):
+        inputs = self.make_input(text, image)
         return self.model.generate(*args, **inputs, **kwargs)
 
-    def make_input(self, inputs: list[dict[str, Any]], *args, **kwargs):
-        input_text = self._make_text_input(text) 
-        return self.processor(image, input_text, add_special_tokens=True, return_tensors="pt", *args, **kwargs).to(self.model.device)
+    def make_input(self, text: str, image: Image.Image, *args, **kwargs):
+        text = self._make_text_input(text)
+        return self.processor(image, text, add_special_tokens=True, return_tensors="pt", *args, **kwargs).to(self.model.device)
 
     def _make_text_input(self, text: str):
         messages = self._build_simple_message(text)

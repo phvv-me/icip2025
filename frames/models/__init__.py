@@ -1,1 +1,2 @@
 from .hf import LanguageHuggingFaceModel, VisionLanguageHuggingFaceModel
+from .deepeval import HuggingFaceLLMDeepEval

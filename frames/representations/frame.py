@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from frames.linalg.orthogonalization import solve_procrustes
 from frames.models.hf import BaseHuggingFaceModel, LanguageHuggingFaceModel
+from frames.models.hf.vlm import VLMInput
 
 from ..linalg import Frame
 from ..nlp import MultiLingualWordNetSynsets, SupportedLanguages
@@ -183,7 +184,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
     @torch.inference_mode()
     def _generate_with_topk_guide(
         self,
-        inputs: list[dict[str, Any]],
+        inputs: list[dict[str, Any]] | list[VLMInput],
         guide: Concept,
         k: int = 2,
         steps: int = 16,
@@ -202,40 +203,54 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """
         #  input_text = self._prepare_input_text(input_text)
         n = len(inputs)
+        rank = len(guide)
 
         # inputs = self.model.make_input(input_text, padding=True)["input_ids"]
+        inputs = self.model.make_input(**inputs[0], padding=True)
 
-        inputs = self.model.make_input(inputs, padding=True)
-        tokens = self._generate_candidates(inputs["input_ids"], k)[0].flatten(0, 1)
+        del inputs["attention_mask"]
+
+        tokens, _ = self._generate_candidates(inputs, k)
+
+        for key in inputs:
+            dims = [1] * (inputs[key].ndim - 1)
+            inputs[key] = inputs[key].repeat(k, *dims)
 
         for _ in range(steps):
             # notice this approach uses a single pass through the model
-            #  at the expense of having k times more candidates being processes.
+            #  at the expense of having k times more candidates being processed.
             #  The other option is to use double pass, but takes longer.
             #  On larger models, our bottleneck is time, not memory,
             #  so we choose this approach for now.
-            sequences, hidden_states = self._generate_candidates(tokens, k)
+            inputs["input_ids"] = tokens.flatten(0,1)
+
+            # fix cross attention
+            cam = inputs["cross_attention_mask"]
+            new_row = torch.ones(k, 1, 1, cam.size(-1), device=cam.device, dtype=cam.dtype)
+            inputs["cross_attention_mask"] = torch.cat([cam, new_row], dim=1)
+
+            sequences, hidden_states = self._generate_candidates(inputs, k)
 
             last_hs = hidden_states[-1].to(guide.device)
-            last_hs_padded = torch.nn.functional.pad(last_hs, (0, 0, 0, len(guide) - 1))
-            last_hs_frames = last_hs_padded.unfold(
-                -2, size=len(guide), step=1
-            ).squeeze_(0)
+            last_hs_padded = torch.nn.functional.pad(last_hs, (0, 0, 0, rank - 1))
+            last_hs_frames = last_hs_padded.unfold(-2, size=rank, step=1).squeeze_(0)
             projections = last_hs_frames * guide
 
+            # the probe is the sum of the projections up to the token
             max_probe = projections.cumsum(-2).reshape(n, k, -1).max(-2)
 
             row_idx = np.arange(n)
-            col_idx = max_probe.indices[..., -1].cpu()
+            col_idx = max_probe.indices[..., -1].cpu() # get the last probe value
             candidate_tokens = sequences.reshape(n, k, k, -1)
-            tokens = candidate_tokens[row_idx, col_idx].flatten(0, 1)
+            tokens = candidate_tokens[row_idx, col_idx]
 
-            if self._is_generation_complete(tokens):
-                break
+            # if self._is_generation_complete(tokens):
+            #     break
 
-        return self.model.decode(tokens[::k]), max_probe.values.cpu()
+        result = self.model.decode(tokens[:, 0])
+        return result, max_probe.values.cpu()
 
-    def generate_with_topk_guide(
+    def batched_generate_with_topk_guide(
         self,
         inputs: list[dict[str, Any]],
         *args,
@@ -255,14 +270,14 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """Prepare input text for generation."""
         return [input_text] if isinstance(input_text, str) else input_text
 
-    def _generate_candidates(self, tokens: torch.IntTensor, k: int) -> torch.Tensor:
+    def _generate_candidates(self, inputs: dict[str, torch.Tensor], k: int) -> torch.Tensor:
         """Generate candidate texts."""
-        inputs = self.model.make_input(self.model.decode(tokens), padding=True)
+        # inputs = self.model.make_input(self.model.decode(tokens), padding=True)
         outputs = self.model(**inputs, output_hidden_states=True, use_cache=False)
         logits, hs = outputs["logits"], outputs["hidden_states"]
 
         generated = logits.softmax(-1)[..., -1, :].topk(k).indices.unsqueeze_(-1)
-        tokens = tokens.unsqueeze(-2).expand(-1, k, -1)
+        tokens = inputs["input_ids"].unsqueeze(-2).expand(-1, k, -1)
         candidates = torch.cat([tokens, generated], dim=-1)
 
         return candidates, hs
@@ -282,7 +297,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
 
     def _is_generation_complete(self, gen_text: torch.Tensor) -> bool:
         """Check if the generation is complete."""
-        return gen_text.eq(self.model._tokenizer.eos_token_id).any(-1).all()
+        return gen_text.eq(self.model.tokenizer.eos_token_id).any(-1).all()
 
     def loss(self, input_text: Union[str, List[str]]) -> torch.Tensor:
         """
@@ -429,7 +444,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         concept_B = self.get_concept(guide[1], *cargs) if len(guide) > 1 else None
         guide = concept_A - concept_B if concept_B else concept_A
 
-        return self.generate_with_topk_guide(inputs, *args, guide=guide, **kwargs)
+        return self.batched_generate_with_topk_guide(inputs, *args, guide=guide, **kwargs)
 
     def _relative_rank(self, tokens: list[int]) -> torch.Tensor:
         """Compute the frame's matrix rank / num vectors"""
