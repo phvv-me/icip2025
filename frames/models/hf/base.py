@@ -134,12 +134,7 @@ class BaseHuggingFaceModel(BaseModel, ABC, arbitrary_types_allowed=True):
         Raises:
             RuntimeError: If model loading fails
         """
-        try:
-            self._model = self.cls.from_pretrained(**self._model_kwargs())
-        except Exception as e:
-            raise RuntimeError(f"Failed to load model: {e}")
-        else:
-            self._model.tie_weights()
+        self._model = self.cls.from_pretrained(**self._model_kwargs())
 
     def _model_kwargs(self) -> dict[str, Any]:
         """Build keyword arguments for model initialization.
@@ -167,7 +162,7 @@ class BaseHuggingFaceModel(BaseModel, ABC, arbitrary_types_allowed=True):
         Returns:
             bool: True if model is Meta-LLaMA-3
         """
-        return "Meta-Llama-3" in self.id
+        return "llama-3" in self.id.lower()
 
     def _fix_llama_model(self) -> None:
         """Apply LLaMA-specific model fixes for tokens and padding."""

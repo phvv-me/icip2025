@@ -24,7 +24,7 @@ class QueryType(StrEnum):
 
 
 class FigstepDataset(Dataset):
-    def __init__(self, filepath: str = HERE / "safebench.csv", font_family: str = "FreeMonoBold.ttf", font_size: int = 80, query_type: QueryType = QueryType.figstep):
+    def __init__(self, filepath: str = HERE / "safebench.csv", font_family: str = HERE / "FreeMonoBold.ttf", font_size: int = 80, query_type: QueryType = QueryType.figstep):
         """
         Initialize the dataset with a CSV file path
         

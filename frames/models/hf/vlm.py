@@ -1,3 +1,4 @@
+
 from typing import Any, Type, TypedDict
 
 import torch
@@ -6,6 +7,8 @@ from transformers import (
     AutoProcessor,
     MllamaForConditionalGeneration,
     PreTrainedModel,
+    Qwen2VLForConditionalGeneration,
+    LlavaForConditionalGeneration
 )
 
 from ...utils.stdlib import is_online
@@ -17,11 +20,11 @@ class VLMInput(TypedDict):
 
 
 class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
-    cls: Type[PreTrainedModel] = MllamaForConditionalGeneration
+    cls: Type[PreTrainedModel] | None = None
     prc: Type[AutoProcessor] = AutoProcessor
 
     def load(self) -> None:
-        super().load()
+        self._model = self._auto_cls.from_pretrained(**self._model_kwargs())
         self._processor = self.prc.from_pretrained(**self._processor_kwargs())
         self._tokenizer = self.processor.tokenizer
 
@@ -32,6 +35,24 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
             local_files_only=not is_online(),
             padding_side='left',
         )
+
+    @property
+    def _auto_cls(self):
+        if self._is_meta_llama():
+            return MllamaForConditionalGeneration
+        elif self._is_qwen2vl():
+            return Qwen2VLForConditionalGeneration
+        elif self._is_pixtral() or self._is_llava():
+            return LlavaForConditionalGeneration
+
+    def _is_qwen2vl(self) -> bool:
+        return "qwen2-vl" in self.id.lower()
+
+    def _is_pixtral(self) -> bool:
+        return "pixtral" in self.id.lower()
+
+    def _is_llava(self) -> bool:
+        return "llava" in self.id.lower()
 
     @property
     def processor(self) -> AutoProcessor:
