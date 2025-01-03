@@ -1,18 +1,18 @@
 ---
 # Llama 3.2:
-- id: meta-llama/Llama-3.2-90B-Vision-Instruct
-  family: Llama 3.2
-  quantization: 4
+# - id: meta-llama/Llama-3.2-90B-Vision-Instruct
+#   family: Llama 3.2
+#   quantization: 4
 - id: neuralmagic/Llama-3.2-11B-Vision-Instruct-FP8-dynamic
   family: Llama 3.2
 
 # Qwen 2 VL:
 # - id: Qwen/Qwen2-VL-72B-Instruct-AWQ
 #   family: Qwen 2 VL
-# - id: Qwen/Qwen2-VL-7B-Instruct-AWQ
-#   family: Qwen 2 VL
-# - id: Qwen/Qwen2-VL-2B-Instruct-AWQ
-#   family: Qwen 2 VLs
+- id: Qwen/Qwen2-VL-7B-Instruct-AWQ
+  family: Qwen 2 VL
+- id: Qwen/Qwen2-VL-2B-Instruct-AWQ
+  family: Qwen 2 VLs
 
 # PaliGemma 2:
 # - id: google/paligemma2-3b-pt-224-keras

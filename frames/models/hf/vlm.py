@@ -37,13 +37,15 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
         )
 
     @property
-    def _auto_cls(self):
+    def _auto_cls(self) -> type[PreTrainedModel]:
         if self._is_meta_llama():
             return MllamaForConditionalGeneration
         elif self._is_qwen2vl():
             return Qwen2VLForConditionalGeneration
         elif self._is_pixtral() or self._is_llava():
             return LlavaForConditionalGeneration
+        else:
+            raise ValueError(f"Model {self.id} not supported")
 
     def _is_qwen2vl(self) -> bool:
         return "qwen2-vl" in self.id.lower()
@@ -60,7 +62,12 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
 
     @property
     def unembedding_matrix(self) -> torch.Tensor:
-        return self._model.language_model.lm_head.weight.data.detach()
+        if self._is_meta_llama():
+            return self.model.language_model.lm_head.weight.data.detach()
+        elif self._is_qwen2vl():
+            return self.model.lm_head.weight.data.detach()
+        else:
+            raise ValueError(f"Model {self.id} not supported")
 
     def generate(self, text: str, image: Image.Image | None = None, *args, **kwargs):
         inputs = self.make_input(text, image)
