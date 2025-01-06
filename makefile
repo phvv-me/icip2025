@@ -18,4 +18,4 @@ run_notebook:
 		--progress-bar
 
 run:
-	uv run make run_notebook N=13_figstep_visual_dataset.ipynb
+	uv run make run_notebook N=12_figstep_visual_dataset.ipynb

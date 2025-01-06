@@ -1,12 +1,12 @@
 ---
 # Llama 3.2:
-- id: meta-llama/Llama-3.2-90B-Vision-Instruct
-  family: Llama 3.2
-  quantization: 8
-- id: meta-llama/Llama-3.2-11B-Vision-Instruct
-  family: Llama 3.2
-- id: neuralmagic/Llama-3.2-11B-Vision-Instruct-FP8-dynamic
-  family: Llama 3.2
+# - id: meta-llama/Llama-3.2-90B-Vision-Instruct
+#   family: Llama 3.2
+#   quantization: 8
+# - id: meta-llama/Llama-3.2-11B-Vision-Instruct
+#   family: Llama 3.2
+# - id: neuralmagic/Llama-3.2-11B-Vision-Instruct-FP8-dynamic
+#   family: Llama 3.2
 
 # TODO: - MOLMOE
 
