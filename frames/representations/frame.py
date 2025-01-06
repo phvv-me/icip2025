@@ -314,7 +314,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         return torch.tensor([self.model(x, labels=x).loss for x in tokens])
 
     def probe(
-        self, input_text: Union[str, List[str], torch.Tensor], concept: Concept
+        self, *args, **kwargs
     ) -> torch.Tensor:
         """
         Probe the input text with a given concept.
@@ -326,7 +326,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Returns:
             torch.Tensor: Probe results.
         """
-        return self.project(input_text, concept).cumsum(-2)
+        return self.project(*args, **kwargs).cumsum(-2)
 
     def _total_probe(
         self, input_text: Union[str, List[str], torch.Tensor], concept: Concept
@@ -379,7 +379,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         return concepts.synset["synset"].values[indices]
 
     def project(
-        self, input_text: Union[str, List[str], torch.Tensor], concept: Concept
+        self, concept: Concept, *args, **kwargs
     ) -> torch.Tensor:
         """
         Project input text onto a concept.
@@ -391,11 +391,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         Returns:
             torch.Tensor: Projection results.
         """
-        x = (
-            self.model.tokenize(input_text, padding=True)
-            if not isinstance(input_text, torch.Tensor)
-            else input_text
-        )
+        x = self.model.make_input(*args, **kwargs)
         last_hs = self.model.forward_last_hiden_state(x).to(concept.device)
         last_hs_padded = torch.nn.functional.pad(last_hs, (0, 0, 0, len(concept) - 1))
         last_hs_frames = last_hs_padded.unfold(-2, size=len(concept), step=1).squeeze_(
