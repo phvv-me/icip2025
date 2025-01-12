@@ -26,6 +26,9 @@ class SupportedLanguages(tuple, Enum):
     # Languages supported by Llama 3.1
     Llama = ("deu_wikt", "eng", "fra", "hin_wikt", "ita_iwn", "por", "spa", "tha")
 
+    # Languages supported by Qwen2
+    Qwen2 = ("eng", "fra", "deu", "ita", "spa", "por", "nld", "rus", "jpn", "kor", "cmn", "ara", "hin", "heb", "tur")
+
     @staticmethod
     def _get_language_from_code(code: str):
         return pycountry.languages.get(alpha_3=code.split("_")[0]).name
@@ -36,10 +39,8 @@ class SupportedLanguages(tuple, Enum):
 
     @classmethod
     def from_model_id(cls, model_id: str):
-        for group in cls:
-            if group.name.lower() in model_id.lower():
-                return group
-        return cls.Default
+        groups = (group for group in cls if group.name.lower() in model_id.lower())
+        return next(groups, cls.Default)
 
 
 class MultiLingualWordNetSynsets(BaseModel):
