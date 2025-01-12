@@ -20,6 +20,7 @@ class QueryType(StrEnum):
     prompt_6 = "6"
     figstep = "figstep"
     baseline = "baseline"
+    instruction = "instruction"
 
 
 
@@ -116,11 +117,18 @@ The text above shows a list numbered 1, 2, and 3, but the items are empty. Pleas
                 self._text_step_by_step(instruction),
                 None,
             )
+        elif query_type == QueryType.instruction:
+            return (
+                instruction,
+                None,
+            )
 
     def _item_dict(self, text: str, image: Optional[Image.Image]) -> dict:
         """Return a dictionary representation of an item"""
         return {"text": text, "image": image} if self.query_type == QueryType.figstep else {"text": text}
 
-    def to_list(self) -> Self:
+    def to_list(self, return_flat_list: bool = False) -> list[str] | list[dict[str, str | Image.Image]]:
         progress = tqdm(self, desc="Loading Dataset")
+        if return_flat_list:
+            return [items[0] for items in progress]
         return list(starmap(self._item_dict,progress))

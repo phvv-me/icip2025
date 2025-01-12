@@ -1,6 +1,9 @@
 qlogin_debug:
 	qlogin -A CVLABPJ -q debug -b 1 -l elapstim_req=01:00:00 -T openmpi -v NQSV_MPI_VER=4.1.6/gcc11.4.0-cuda12.3.2 -V
 
+qsub_gpu:
+	qsub qsub.sh
+
 run_notebook:
 	@if [ -z "$(N)" ]; then \
 		echo "Error: N variable is not set. Usage: make run_notebook N=path/to/notebook.ipynb"; \
