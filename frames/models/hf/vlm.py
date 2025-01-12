@@ -1,18 +1,18 @@
-
-from typing import Any, Type, TypedDict
+from typing import Type, TypedDict
 
 import torch
 from PIL import Image
 from transformers import (
     AutoProcessor,
+    LlavaForConditionalGeneration,
     MllamaForConditionalGeneration,
     PreTrainedModel,
     Qwen2VLForConditionalGeneration,
-    LlavaForConditionalGeneration
 )
 
 from ...utils.stdlib import is_online
 from .base import BaseHuggingFaceModel
+
 
 class VLMInput(TypedDict):
     text: str
@@ -33,7 +33,7 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
             pretrained_model_name_or_path=self.id,
             trust_remote_code=self.trust_remote_code,
             local_files_only=not is_online(),
-            padding_side='left',
+            padding_side="left",
         )
 
     @property
@@ -75,7 +75,9 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
 
     def make_input(self, text: str, image: Image.Image | None = None, *args, **kwargs):
         text = self._make_text_input(text, has_image=image is not None)
-        return self.processor(image, text, add_special_tokens=True, return_tensors="pt", *args, **kwargs).to(self.model.device)
+        return self.processor(
+            image, text, add_special_tokens=True, return_tensors="pt", *args, **kwargs
+        ).to(self.model.device)
 
     def _make_text_input(self, text: str, has_image: bool = False):
         messages = self._build_simple_message(text, has_image)
@@ -86,7 +88,11 @@ class VisionLanguageHuggingFaceModel(BaseHuggingFaceModel):
         return self.processor.apply_chat_template(messages, add_generation_prompt=True)
 
     def _build_simple_message(self, text, has_image: bool = False):
-        content = [{"type": "image"}, {"type": "text", "text": text}] if has_image else [{"type": "text", "text": text}]
+        content = (
+            [{"type": "image"}, {"type": "text", "text": text}]
+            if has_image
+            else [{"type": "text", "text": text}]
+        )
         return [
             {
                 "role": "user",

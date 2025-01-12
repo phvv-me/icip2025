@@ -1,15 +1,18 @@
-from functools import cache, cached_property
 import json
-from typing import Optional
-import torch
-from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoTokenizer, pipeline
+from functools import cache, cached_property
+
 from deepeval.models import DeepEvalBaseLLM
-from pydantic import BaseModel
-from ..hf import LanguageHuggingFaceModel
 from lmformatenforcer import JsonSchemaParser
 from lmformatenforcer.integrations.transformers import (
     build_transformers_prefix_allowed_tokens_fn,
 )
+from pydantic import BaseModel
+from transformers import (
+    pipeline,
+)
+
+from ..hf import LanguageHuggingFaceModel
+
 
 class HuggingFaceLLMDeepEval(DeepEvalBaseLLM):
     def __init__(self, **kwargs):
@@ -20,8 +23,10 @@ class HuggingFaceLLMDeepEval(DeepEvalBaseLLM):
         self.hf_model.load()
 
     def generate(self, prompt: str, schema: BaseModel) -> BaseModel:
-        output_dict = self.pipeline(prompt, prefix_allowed_tokens_fn=self._parse_schema(schema))
-        output = output_dict[0]["generated_text"][len(prompt):]
+        output_dict = self.pipeline(
+            prompt, prefix_allowed_tokens_fn=self._parse_schema(schema)
+        )
+        output = output_dict[0]["generated_text"][len(prompt) :]
         json_result = json.loads(output)
         return schema(**json_result)
 

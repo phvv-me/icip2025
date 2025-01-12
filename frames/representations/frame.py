@@ -222,12 +222,14 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
             #  The other option is to use double pass, but takes longer.
             #  On larger models, our bottleneck is time, not memory,
             #  so we choose this approach for now.
-            inputs["input_ids"] = tokens.flatten(0,1)
+            inputs["input_ids"] = tokens.flatten(0, 1)
 
             # fix cross attention
             if "cross_attention_mask" in inputs:
                 cam = inputs["cross_attention_mask"]
-                new_row = torch.ones(k, 1, 1, cam.size(-1), device=cam.device, dtype=cam.dtype)
+                new_row = torch.ones(
+                    k, 1, 1, cam.size(-1), device=cam.device, dtype=cam.dtype
+                )
                 inputs["cross_attention_mask"] = torch.cat([cam, new_row], dim=1)
 
             sequences, hidden_states = self._generate_candidates(inputs, k)
@@ -241,7 +243,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
             max_probe = projections.cumsum(-2).reshape(n, k, -1).max(-2)
 
             row_idx = np.arange(n)
-            col_idx = max_probe.indices[..., -1].cpu() # get the last probe value
+            col_idx = max_probe.indices[..., -1].cpu()  # get the last probe value
             candidate_tokens = sequences.reshape(n, k, k, -1)
             tokens = candidate_tokens[row_idx, col_idx]
 
@@ -271,7 +273,9 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         """Prepare input text for generation."""
         return [input_text] if isinstance(input_text, str) else input_text
 
-    def _generate_candidates(self, inputs: dict[str, torch.Tensor], k: int) -> torch.Tensor:
+    def _generate_candidates(
+        self, inputs: dict[str, torch.Tensor], k: int
+    ) -> torch.Tensor:
         """Generate candidate texts."""
         # inputs = self.model.make_input(self.model.decode(tokens), padding=True)
         outputs = self.model(**inputs, output_hidden_states=True, use_cache=False)
@@ -313,9 +317,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         tokens = self.model.tokenize(input_text, padding=True).unsqueeze_(1)
         return torch.tensor([self.model(x, labels=x).loss for x in tokens])
 
-    def probe(
-        self, *args, **kwargs
-    ) -> torch.Tensor:
+    def probe(self, *args, **kwargs) -> torch.Tensor:
         """
         Probe the input text with a given concept.
 
@@ -378,9 +380,7 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         concepts, indices = self._topk_index_probes(input_text, k, *args, **kwargs)
         return concepts.synset["synset"].values[indices]
 
-    def project(
-        self, concept: Concept, *args, **kwargs
-    ) -> torch.Tensor:
+    def project(self, concept: Concept, *args, **kwargs) -> torch.Tensor:
         """
         Project input text onto a concept.
 
@@ -441,7 +441,9 @@ class FrameUnembeddingRepresentation(LinearUnembeddingRepresentation):
         concept_B = self.get_concept(guide[1], *cargs) if len(guide) > 1 else None
         guide = concept_A - concept_B if concept_B else concept_A
 
-        return self.batched_generate_with_topk_guide(inputs, *args, guide=guide, **kwargs)
+        return self.batched_generate_with_topk_guide(
+            inputs, *args, guide=guide, **kwargs
+        )
 
     def _relative_rank(self, tokens: list[int]) -> torch.Tensor:
         """Compute the frame's matrix rank / num vectors"""

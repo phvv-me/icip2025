@@ -5,8 +5,8 @@ from functools import cached_property
 import torch
 
 from ..abstract import BaseModel
-from .orthogonalization import solve_procrustes
 from ..utils.tensor import unsqueeze_like
+from .orthogonalization import solve_procrustes
 
 
 class Frame(BaseModel, arbitrary_types_allowed=True):

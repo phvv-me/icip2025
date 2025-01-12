@@ -27,7 +27,23 @@ class SupportedLanguages(tuple, Enum):
     Llama = ("deu_wikt", "eng", "fra", "hin_wikt", "ita_iwn", "por", "spa", "tha")
 
     # Languages supported by Qwen2
-    Qwen2 = ("eng", "fra", "deu", "ita", "spa", "por", "nld", "rus", "jpn", "kor", "cmn", "ara", "hin", "heb", "tur")
+    Qwen2 = (
+        "eng",
+        "fra",
+        "deu",
+        "ita",
+        "spa",
+        "por",
+        "nld",
+        "rus",
+        "jpn",
+        "kor",
+        "cmn",
+        "ara",
+        "hin",
+        "heb",
+        "tur",
+    )
 
     @staticmethod
     def _get_language_from_code(code: str):
@@ -227,7 +243,9 @@ class MultiLingualWordNetSynsets(BaseModel):
         Returns:
             str: The generated filename for caching.
         """
-        filename = f".cache/wordnet/{tokenizer.name_or_path.lower()}_{hash(self)}.parquet"
+        filename = (
+            f".cache/wordnet/{tokenizer.name_or_path.lower()}_{hash(self)}.parquet"
+        )
         filepath = Path.home() / filename
         filepath.parent.mkdir(parents=True, exist_ok=True)
         return filepath
