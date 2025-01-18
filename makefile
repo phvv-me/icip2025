@@ -22,3 +22,6 @@ run_notebook:
 
 run:
 	uv run make run_notebook N=14_multilang_figstep_analysis.ipynb
+
+budget:
+	/opt/nec/nqsv/bin/rbudgetcheck
