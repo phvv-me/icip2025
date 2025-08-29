@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" x-data="app()" :class="{'dark': dark}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Language Model Interpretability with Concept Guided Decoding - ICIP 2025</title>
+    <meta name="description" content="ICIP 2025 paper on VLM interpretability using Frame Representation Hypothesis and Concept Guided Decoding, achieving 97.7% attack success rate.">
+    <meta name="author" content="Pedro H. V. Valois, Dipesh Satav, Rodrigo A. P. de Campos, Gulpi Q. O. Pratamasunu, Kazuhiro Fukui">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Vision Language Model Interpretability with Concept Guided Decoding">
+    <meta property="og:description" content="ICIP 2025 paper on VLM interpretability achieving 97.7% attack success rate">
+    <meta property="og:url" content="https://phvv.me/icip2025">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* Component classes */
+        @layer components {
+            .btn { @apply flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95; }
+            .card { @apply bg-white dark:bg-gray-800 rounded-xl shadow-xl dark:shadow-2xl p-6 border border-gray-200 dark:border-gray-700 hover:-translate-y-1 transition-all; }
+            .section-title { @apply text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8 text-center; }
+            .text-muted { @apply text-gray-600 dark:text-gray-400; }
+            .nav-link { @apply text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition; }
+            .badge { @apply px-3 py-1 rounded-full text-sm border; }
+        }
+        
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+        
+        /* Dark scrollbar */
+        .dark ::-webkit-scrollbar { width: 8px; }
+        .dark ::-webkit-scrollbar-track { background: #1f2937; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        
+        /* Gradient effects */
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .frame-highlight {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out; }
+    </style>
+    
+    <script>
+        function app() {
+            return {
+                dark: localStorage.theme === 'dark' || (!localStorage.theme && true),
+                mobileMenu: false,
+                dropdown: false,
+                copied: false,
+                
+                // Data
+                quickLinks: [
+                    {name: 'Paper', icon: 'fa-file-pdf', url: 'https://cmsworkshops.com/ICIP2025/view_paper.php?PaperNum=1443', btnClass: 'bg-blue-500 hover:bg-blue-600'},
+                    {name: 'Code', icon: 'fa-brands fa-github', url: 'https://github.com/phvv-me/icip2025', btnClass: 'bg-gray-900 dark:bg-gray-800 hover:bg-gray-700'},
+                    {name: 'Dataset', icon: 'fa-database', url: 'https://github.com/phvv-me/icip2025/blob/main/Translated%20SafeBench%20verified%202025-01-12.xlsx', btnClass: 'bg-green-600 hover:bg-green-700'},
+                    {name: 'IEEE Xplore', icon: 'fa-link', url: 'https://ieeexplore.ieee.org/document/11084299', btnClass: 'bg-purple-600 hover:bg-purple-700'},
+                    {name: 'FigStep', icon: 'fa-lock', url: 'https://github.com/ThuCCSLab/FigStep', btnClass: 'bg-orange-600 hover:bg-orange-700'}
+                ],
+                
+                authors: [
+                    {name: 'Pedro H. V. Valois', url: 'https://phvv.me/', scholar: 'https://scholar.google.com/citations?user=2YyfBOgAAAAJ&hl=en', sup: '1'},
+                    {name: 'Dipesh Satav', sup: '1'},
+                    {name: 'Rodrigo A. P. de Campos', sup: '1'},
+                    {name: 'Gulpi Q. O. Pratamasunu', sup: '1'},
+                    {name: 'Kazuhiro Fukui', scholar: 'https://scholar.google.com/citations?user=sHcEkmAAAAAJ&hl=en', sup: '1,2,3'}
+                ],
+                
+                affiliations: [
+                    'Graduate School of Science and Technology, University of Tsukuba',
+                    'Tsukuba Institute for Advanced Research',
+                    'Center for Artificial Intelligence Research, Department of Computer Science, University of Tsukuba'
+                ],
+                
+                contributions: [
+                    {
+                        icon: 'fa-lightbulb',
+                        title: 'Frame Representation Extension',
+                        desc: 'Extended the Frame Representation Hypothesis to the visual domain, enabling systematic interpretability of VLM outputs.',
+                        gradient: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+                        border: 'border-blue-200 dark:border-blue-800',
+                        iconColor: 'text-blue-600 dark:text-blue-400'
+                    },
+                    {
+                        icon: 'fa-shield-alt',
+                        title: 'Strong Jailbreak System',
+                        desc: 'Developed a gradient-free jailbreak combining FigStep and CGD, achieving 97.7% ASR on state-of-the-art VLMs.',
+                        gradient: 'from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20',
+                        border: 'border-red-200 dark:border-red-800',
+                        iconColor: 'text-red-600 dark:text-red-400'
+                    },
+                    {
+                        icon: 'fa-language',
+                        title: 'Multilingual Dataset',
+                        desc: 'Released vulnerability analysis dataset manually verified by native/fluent speakers across 8 languages.',
+                        gradient: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+                        border: 'border-green-200 dark:border-green-800',
+                        iconColor: 'text-green-600 dark:text-green-400'
+                    }
+                ],
+                
+                resources: [
+                    {icon: 'fa-brands fa-github', title: 'GitHub Repository', desc: 'Source code and experiments', url: 'https://github.com/phvv-me/icip2025', hoverColor: 'group-hover:text-blue-600 dark:group-hover:text-blue-400'},
+                    {icon: 'fa-database', title: 'Multilingual Dataset', desc: '8 languages, manually verified', url: 'https://github.com/phvv-me/icip2025/blob/main/Translated%20SafeBench%20verified%202025-01-12.xlsx', hoverColor: 'group-hover:text-green-600 dark:group-hover:text-green-400'},
+                    {icon: 'fa-file-pdf', title: 'Paper PDF', desc: 'Full paper on CMS', url: 'https://cmsworkshops.com/ICIP2025/view_paper.php?PaperNum=1443', hoverColor: 'group-hover:text-red-600 dark:group-hover:text-red-400'},
+                    {icon: 'fa-link', title: 'IEEE Xplore', desc: 'Official publication', url: 'https://ieeexplore.ieee.org/document/11084299', hoverColor: 'group-hover:text-purple-600 dark:group-hover:text-purple-400'}
+                ],
+                
+                models: [
+                    {name: 'Qwen2-VL 2B', text: '26.8%', cgd: '81.8%', figstep: '97.6%', ours: '99.8%'},
+                    {name: 'Qwen2-VL 7B', text: '19.8%', cgd: '85.6%', figstep: '91.6%', ours: '100%'},
+                    {name: 'Qwen2-VL 72B', text: '23.4%', cgd: '94.6%', figstep: '96.0%', ours: '99.6%'},
+                    {name: 'Llama 3.2 11B', text: '54.2%', cgd: '90.4%', figstep: '83.4%', ours: '94.8%'},
+                    {name: 'Llama 3.2 90B', text: '66.4%', cgd: '94.0%', figstep: '77.4%', ours: '94.4%'}
+                ],
+                
+                languages: [
+                    {name: 'English', value: 90.4},
+                    {name: 'Portuguese', value: 95.0},
+                    {name: 'Spanish', value: 92.0},
+                    {name: 'Japanese', value: 88.0},
+                    {name: 'German', value: 93.0}
+                ],
+                
+                // Methods
+                init() {
+                    // Apply dark class to HTML element on initialization
+                    document.documentElement.classList.toggle('dark', this.dark);
+                    
+                    // Watch for changes and update both localStorage and HTML element
+                    this.$watch('dark', val => {
+                        localStorage.theme = val ? 'dark' : 'light';
+                        document.documentElement.classList.toggle('dark', val);
+                    });
+                },
+                
+                toggleTheme() {
+                    this.dark = !this.dark;
+                },
+                
+                copyBibTeX() {
+                    const bibtex = this.$refs.bibtex.textContent;
+                    navigator.clipboard.writeText(bibtex);
+                    this.copied = true;
+                    setTimeout(() => this.copied = false, 2000);
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-lg dark:shadow-2xl z-50 border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="https://phvv.me/" class="flex items-center gap-2 text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition group">
+                    <i class="fas fa-home group-hover:scale-110 transition-transform"></i>
+                    <span class="font-semibold hidden sm:inline">Pedro Valois</span>
+                </a>
+                
+                <!-- Desktop Nav -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a href="#abstract" class="nav-link">Abstract</a>
+                    <a href="#method" class="nav-link">Method</a>
+                    <a href="#results" class="nav-link">Results</a>
+                    <a href="#citation" class="nav-link">Citation</a>
+                    
+                    <!-- Dropdown -->
+                    <div class="relative" @click.away="dropdown = false">
+                        <button @click="dropdown = !dropdown" class="nav-link flex items-center gap-1">
+                            <span>Other Research</span>
+                            <i class="fas fa-chevron-down text-xs transition-transform" :class="dropdown && 'rotate-180'"></i>
+                        </button>
+                        <div x-show="dropdown" x-transition class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700">
+                            <a href="https://phvv.me/frame-representation-hypothesis/" target="_blank" class="block px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg">
+                                <span class="frame-highlight">Frame Representation Hypothesis</span>
+                            </a>
+                            <a href="https://github.com/ThuCCSLab/FigStep" target="_blank" class="block px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-b-lg">
+                                FigStep Jailbreak Method
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Theme Toggle -->
+                    <button @click="toggleTheme()" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                        <i class="fas" :class="dark ? 'fa-moon' : 'fa-sun'"></i>
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button @click="mobileMenu = !mobileMenu" class="md:hidden">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div x-show="mobileMenu" x-transition class="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+            <div class="px-4 py-2 space-y-2">
+                <a href="#abstract" @click="mobileMenu = false" class="block py-2 nav-link">Abstract</a>
+                <a href="#method" @click="mobileMenu = false" class="block py-2 nav-link">Method</a>
+                <a href="#results" @click="mobileMenu = false" class="block py-2 nav-link">Results</a>
+                <a href="#citation" @click="mobileMenu = false" class="block py-2 nav-link">Citation</a>
+                <a href="https://phvv.me/frame-representation-hypothesis/" target="_blank" class="block py-2 nav-link">
+                    <span class="frame-highlight">Frame Representation</span> Paper
+                </a>
+                <a href="https://github.com/ThuCCSLab/FigStep" target="_blank" class="block py-2 nav-link">FigStep Method</a>
+                <button @click="toggleTheme()" class="w-full text-left py-2 nav-link">
+                    Toggle Theme <i class="fas ml-2" :class="dark ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="pt-24 pb-12 px-4 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 dark:from-blue-500/5 dark:via-purple-500/5 dark:to-pink-500/5"></div>
+        
+        <div class="relative max-w-6xl mx-auto">
+            <div class="text-center animate-fade-in-up">
+                <!-- Badge -->
+                <div class="inline-block mb-4">
+                    <span class="badge bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                        ICIP 2025 • Anchorage, Alaska
+                    </span>
+                </div>
+                
+                <!-- Title -->
+                <h1 class="text-3xl md:text-5xl font-bold mb-6 leading-tight">
+                    Vision Language Model Interpretability with<br>
+                    <span class="gradient-text">Concept Guided Decoding</span>
+                </h1>
+                
+                <!-- Quick Links -->
+                <div class="flex flex-wrap justify-center gap-3 mt-8">
+                    <template x-for="link in quickLinks" :key="link.name">
+                        <a :href="link.url" target="_blank" 
+                           :class="`btn text-white ${link.btnClass}`">
+                            <i :class="`${link.icon}`"></i>
+                            <span x-text="link.name"></span>
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Authors Section -->
+    <section class="py-12 bg-white dark:bg-gray-800/50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center">
+                <h2 class="section-title">Authors</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <template x-for="author in authors" :key="author.name">
+                        <div class="text-center">
+                            <span class="font-semibold">
+                                <a x-show="author.url" :href="author.url" target="_blank" 
+                                   class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                                   x-text="author.name"></a>
+                                <span x-show="!author.url" class="text-gray-700 dark:text-gray-300" x-text="author.name"></span>
+                                <sup x-text="author.sup"></sup>
+                                <a x-show="author.scholar" :href="author.scholar" target="_blank" class="ml-1">
+                                    <i class="fas fa-graduation-cap text-xs text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"></i>
+                                </a>
+                            </span>
+                        </div>
+                    </template>
+                </div>
+                
+                <div class="mt-6 text-sm text-muted space-y-1">
+                    <template x-for="(affiliation, index) in affiliations">
+                        <p><sup x-text="index + 1"></sup><span x-text="affiliation"></span></p>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Abstract Section -->
+    <section id="abstract" class="py-12 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="card">
+                <h2 class="section-title">Abstract</h2>
+                <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-justify">
+                    Vision Language Models (VLMs) are challenging for the field of Deep Learning Interpretability given their billions of 
+                    parameters and recurrence-based reasoning processes. Based on the <span class="frame-highlight">Frame Representation Hypothesis</span> from language models, 
+                    we introduce a novel approach for interpretability for the visual domain, enabling systematic extraction and analysis 
+                    of learned concepts. Our framework reveals inherent biases and vulnerabilities in VLMs, caused by lack of proper safety 
+                    alignment between the visual and textual components. By combining our interpretability techniques with the known 
+                    FigStep jailbreak method, we demonstrate model vulnerabilities, achieving an average 
+                    <span class="font-bold text-blue-500 dark:text-blue-400 text-lg animate-pulse">97.7% attack success rate</span> in the Qwen2-VL and Llama 3.2 Vision models. 
+                    This combination of interpretability analysis and security testing provides crucial insights for developing safer, 
+                    more transparent models, offering a path toward more trustworthy visual AI systems.
+                </p>
+                
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <span class="badge bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">Interpretability</span>
+                    <span class="badge bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">Explainable AI</span>
+                    <span class="badge bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">Vision Language Models</span>
+                    <span class="badge bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800">Jailbreak</span>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Main Contributions -->
+    <section class="py-12 bg-white dark:bg-gray-800/50">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="section-title">Main Contributions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <template x-for="contrib in contributions">
+                    <div :class="`bg-gradient-to-br ${contrib.gradient} rounded-xl p-6 ${contrib.border} border hover:shadow-xl transition-all hover:-translate-y-1`">
+                        <div :class="`${contrib.iconColor} mb-4`">
+                            <i :class="`fas ${contrib.icon} text-3xl`"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3" x-text="contrib.title"></h3>
+                        <p class="text-gray-700 dark:text-gray-300 text-sm">
+                            <span x-html="contrib.desc.replace('Frame Representation Hypothesis', '<span class=\'frame-highlight\'>Frame Representation Hypothesis</span>')"></span>
+                        </p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Method Section -->
+    <section id="method" class="py-12 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="section-title">Method Overview</h2>
+            
+            <!-- How it Works -->
+            <div class="card mb-8">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">How It Works</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center group">
+                        <div class="bg-blue-100 dark:bg-blue-900/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">1</span>
+                        </div>
+                        <h4 class="font-semibold mb-2">Extract Concepts</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Extract semantic concepts from VLMs using <span class="frame-highlight">Frame Representation</span></p>
+                    </div>
+                    <div class="text-center group">
+                        <div class="bg-blue-100 dark:bg-blue-900/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">2</span>
+                        </div>
+                        <h4 class="font-semibold mb-2">Guide Generation</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Use Concept Guided Decoding to steer model outputs</p>
+                    </div>
+                    <div class="text-center group">
+                        <div class="bg-blue-100 dark:bg-blue-900/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">3</span>
+                        </div>
+                        <h4 class="font-semibold mb-2">Reveal Biases</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Expose vulnerabilities and biases in model behavior</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Figure Placeholder -->
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-4">Figure: Concept-Guided Output Examples</h3>
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-3">
+                    <img src="images/dialogue.png" alt="Example dialogue" class="w-full h-auto rounded"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display:none" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-image text-4xl mb-2"></i>
+                        <p>Concept-Guided Dialogue Examples</p>
+                    </div>
+                </div>
+                <p class="text-sm text-muted">
+                    Examples showing how different concepts guide the model to produce biased occupational predictions.
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Results Section -->
+    <section id="results" class="py-12 bg-white dark:bg-gray-800/50">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="section-title">Results</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Attack Success Rate Table -->
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Attack Success Rate Comparison</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b-2 border-gray-300 dark:border-gray-600">
+                                    <th class="text-left py-2">Model</th>
+                                    <th class="text-center py-2">Text</th>
+                                    <th class="text-center py-2">CGD</th>
+                                    <th class="text-center py-2">FigStep</th>
+                                    <th class="text-center py-2 font-bold text-blue-600 dark:text-blue-400">Ours</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700 dark:text-gray-300">
+                                <template x-for="model in models">
+                                    <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                        <td class="py-2" x-text="model.name"></td>
+                                        <td class="text-center" x-text="model.text"></td>
+                                        <td class="text-center" x-text="model.cgd"></td>
+                                        <td class="text-center" x-text="model.figstep"></td>
+                                        <td class="text-center font-bold text-blue-600 dark:text-blue-400" x-text="model.ours"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-muted mt-3">Average ASR: <span class="font-bold text-blue-600 dark:text-blue-400 text-base animate-pulse">97.7%</span></p>
+                </div>
+                
+                <!-- Multilingual Analysis -->
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Multilingual Vulnerability Analysis</h3>
+                    <div class="space-y-3">
+                        <template x-for="lang in languages">
+                            <div class="flex justify-between items-center group">
+                                <span class="text-sm" x-text="lang.name"></span>
+                                <div class="flex-1 mx-3 bg-gray-200 dark:bg-gray-600 rounded-full h-4 relative overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-500 group-hover:from-blue-400 group-hover:to-blue-500" 
+                                         :style="`width: ${lang.value}%`"></div>
+                                </div>
+                                <span class="text-sm font-semibold" x-text="`${lang.value}%`"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <p class="text-xs text-muted mt-3">Dataset verified across 8 languages by native speakers</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Citation Section -->
+    <section id="citation" class="py-12 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="card">
+                <h2 class="section-title">Citation</h2>
+                <div class="relative">
+                    <pre class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg text-xs md:text-sm overflow-x-auto border border-gray-200 dark:border-gray-700">
+<code x-ref="bibtex" class="text-gray-800 dark:text-gray-200">@inproceedings{valois2025vision,
+  title={Vision Language Model Interpretability with Concept Guided Decoding},
+  author={Valois, Pedro H. V. and Satav, Dipesh and de Campos, Rodrigo A. P. and 
+          Pratamasunu, Gulpi Q. O. and Fukui, Kazuhiro},
+  booktitle={2025 IEEE International Conference on Image Processing (ICIP)},
+  pages={397--402},
+  year={2025},
+  organization={IEEE},
+  doi={10.1109/ICIP55913.2025.11084299}
+}</code></pre>
+                    <button @click="copyBibTeX()" 
+                            :class="`absolute top-2 right-2 btn text-white ${copied ? 'bg-green-600' : 'bg-blue-600'}`">
+                        <i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i>
+                        <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Resources Section -->
+    <section class="py-12 bg-white dark:bg-gray-800/50">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="section-title">Resources</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <template x-for="resource in resources">
+                    <a :href="resource.url" target="_blank" 
+                       class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center group hover:shadow-xl transition-all hover:-translate-y-1 border border-gray-200 dark:border-gray-700">
+                        <i :class="`fas ${resource.icon} text-3xl text-gray-700 dark:text-gray-400 ${resource.hoverColor} mb-3 transition-colors`"></i>
+                        <h3 class="font-semibold text-gray-900 dark:text-gray-100" x-text="resource.title"></h3>
+                        <p class="text-sm text-muted mt-2" x-text="resource.desc"></p>
+                    </a>
+                </template>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-900 dark:bg-black text-white py-8 border-t border-gray-800 dark:border-gray-700">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h3 class="font-semibold mb-3">Contact</h3>
+                    <p class="text-sm text-gray-400 flex items-center">
+                        <i class="fas fa-envelope mr-2"></i>
+                        pedro@cvlab.cs.tsukuba.ac.jp
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">Acknowledgments</h3>
+                    <p class="text-sm text-gray-400">
+                        Supported by JSPS KAKENHI<br>
+                        Grant Number JP23K28117
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">Affiliations</h3>
+                    <p class="text-sm text-gray-400">
+                        University of Tsukuba<br>
+                        CVLAB & TIAR
+                    </p>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 dark:border-gray-700 mt-6 pt-6 text-center text-sm text-gray-400">
+                © 2025 Pedro H. V. Valois et al. | ICIP 2025
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
