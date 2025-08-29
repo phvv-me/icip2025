@@ -1,69 +1,56 @@
-# 🎌 Frame Representation Hypothesis
+# Vision Language Model Interpretability with Concept Guided Decoding
 
-> **Authors: [Pedro Valois](https://phvv.me/), [Kazuhiro Fukui](https://www.cs.tsukuba.ac.jp/~kfukui/english/indexE.html), [Lincon Souza](https://dblp.org/pid/196/6193.html), [Erica Kido Shimomoto](https://ericashimomoto.github.io)**
+**ICIP 2025** • *Anchorage, Alaska*
 
-The Frame Representation Hypothesis is a robust framework for understanding and controlling LLMs. We use WordNet to generate concepts that can both guide the model text generation and expose biases or vulnerabilities.
+[![Paper](https://img.shields.io/badge/Paper-PDF-blue?logo=adobeacrobatreader)](https://cmsworkshops.com/ICIP2025/view_paper.php?PaperNum=1443)
+[![Code](https://img.shields.io/badge/Github-Code-black?logo=github)](https://github.com/phvv-me/icip2025)
+[![Dataset](https://img.shields.io/badge/Dataset-Excel-green?logo=microsoftexcel)](https://github.com/phvv-me/icip2025/blob/main/Translated%20SafeBench%20verified%202025-01-12.xlsx)
+[![IEEE Xplore](https://img.shields.io/badge/IEEE_Xplore-Publication-purple?logo=ieee)](https://ieeexplore.ieee.org/document/11084299)
 
-[![arXiv](https://img.shields.io/badge/arXiv-2409.06666-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/0)
-[![code](https://img.shields.io/badge/Github-Code-keygen.svg?logo=github)](https://github.com/Pedrexus/frame-representation-hypothesis)
-
-<div align="center"><img src="./images/overview.jpg" width="50%"/></div>
-<!-- <div align="center"><img src="./images/top_k_guided_decoding.png" width="50%"/></div> -->
-
-## 💡 Highlights
-
-- ♻️ **Capable of dealing with multi-token words.**
-
-- 🎧 **Can use OMW 50M word dataset to build 100,000 concepts.**
-
-- 💪 **Tested on Llama 3.1, Gemma 2 and Phi 3 ensuring high-quality responses.**
-
-- 🚀 **Very fast and low memory cost. Able to compute all concepts in less than a second and fit both Llama 3.1 8B Instruct and Concepts in a RTX 4090 GPU.**
-
-## Install
-
-1. Clone this repository.
+## Installation
 
 ```shell
-git clone https://github.com/Pedrexus/frame-representation-hypothesis
-cd frame-representation-hypothesis
-```
+# Clone repository
+git clone https://github.com/phvv-me/icip2025
+cd icip2025
 
-2. Install packages.
-
-```shell
+# Install dependencies
 pip install -U pip
 pip install uv
 uv sync
 ```
 
-3. Download Models
+## Reproducing Results
 
-Run `01_START_HERE.ipynb` to download all models.
+1. **Start here**: Run `01_START_HERE.ipynb` to download models and set up NLTK data
+2. **View results**: Check `00_results.ipynb` for analysis overview  
+3. **Run experiments**: Execute notebooks 02-14 for specific analyses:
+   - **02-04**: Frame analysis and theory
+   - **05-09**: Guided generation experiments  
+   - **10-12**: Vision-language integration
+   - **13-14**: Multilingual vulnerability analysis
 
-## Quick Start
+Use the makefile for convenient notebook execution:
 
-Each experiment in the paper is in one of the jupyter notebooks starting from 02.
-
-## LICENSE
-
-Our code is released under the MIT License.
+```shell
+make run_notebook N=path/to/notebook.ipynb
+```
 
 ## Citation
 
-If you have any questions, please feel free to submit an issue or contact `pedro@cvlab.cs.tsukuba.ac.jp`.
-
-If our work is useful for you, please cite as:
-
-```
-@article{valois2025,
-  title={Frame Representation Hypothesis: Multi-Token LLM Interpretability and Concept-Guided Text Generation},
-  author={Valois, Pedro H. V. and Souza, Lincon and Shimamoto, Erica and Fukui, Kazuhiro},
-  journal={TACL},
-  year={2025}
+```bibtex
+@inproceedings{valois2025vision,
+  title={Vision Language Model Interpretability with Concept Guided Decoding},
+  author={Valois, Pedro H. V. and Satav, Dipesh and de Campos, Rodrigo A. P. and 
+          Pratamasunu, Gulpi Q. O. and Fukui, Kazuhiro},
+  booktitle={2025 IEEE International Conference on Image Processing (ICIP)},
+  pages={397--402},
+  year={2025},
+  organization={IEEE},
+  doi={10.1109/ICIP55913.2025.11084299}
 }
 ```
 
-## Star History
+## License
 
-<!-- [![Star History Chart](https://api.star-history.com/svg?repos=Pedrexus/frame-representation-hypothesis&type=Date)](https://star-history.com/#Pedrexus/frame-representation-hypothesis&Date) -->
+MIT License
