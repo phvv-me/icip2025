@@ -41,9 +41,7 @@ class LanguageHuggingFaceModel(BaseHuggingFaceModel):
     def _fix_pad_token_in_mistral_model(self):
         self._fix_token(self._tokenizer.eos_token, "pad")
 
-    def make_input(
-        self, inputs: str | torch.IntTensor, *args, **kwargs
-    ) -> torch.Tensor:
+    def make_input(self, inputs: str | torch.IntTensor, *args, **kwargs) -> torch.Tensor:
         return self._tokenizer(
             text=self._decode_if_tensor(inputs),
             return_tensors="pt",
@@ -52,11 +50,7 @@ class LanguageHuggingFaceModel(BaseHuggingFaceModel):
         ).to(self.device)
 
     def _decode_if_tensor(self, inputs):
-        return (
-            self.decode(inputs.flatten(0, 1))
-            if isinstance(inputs, torch.Tensor)
-            else inputs
-        )
+        return self.decode(inputs.flatten(0, 1)) if isinstance(inputs, torch.Tensor) else inputs
 
     def _clean(self, text: str) -> str:
         """Clean the input text."""

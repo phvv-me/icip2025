@@ -23,9 +23,7 @@ class MultiTranslator(pydantic.BaseModel):
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry_error_cls=Exception,
     )
-    async def _translate_text(
-        self, text: str, source_lang: str, target_lang: str
-    ) -> str:
+    async def _translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
         translation = await self._translator.translate(text, target_lang, source_lang)
         return translation.text
 
@@ -37,9 +35,7 @@ class MultiTranslator(pydantic.BaseModel):
         translations = translation.split(self.separator)
 
         if len(translations) != len(batch):
-            raise ValueError(
-                "Batch translation resulted in incorrect number of translations"
-            )
+            raise ValueError("Batch translation resulted in incorrect number of translations")
 
         return translations
 
@@ -49,14 +45,9 @@ class MultiTranslator(pydantic.BaseModel):
         try:
             return await self._translate_batch_together(batch, source_lang, target_lang)
         except Exception as e:
-            logger.warning(
-                f"Batch translation failed, falling back to individual: {str(e)}"
-            )
+            logger.warning(f"Batch translation failed, falling back to individual: {str(e)}")
             return await asyncio.gather(
-                *[
-                    self._translate_text(text, source_lang, target_lang)
-                    for text in batch
-                ]
+                *[self._translate_text(text, source_lang, target_lang) for text in batch]
             )
 
     async def _translate_to_language(
@@ -67,9 +58,7 @@ class MultiTranslator(pydantic.BaseModel):
         translations = []
 
         for batch in all_batches:
-            batch_translations = await self._process_batch(
-                list(batch), source_lang, target_lang
-            )
+            batch_translations = await self._process_batch(list(batch), source_lang, target_lang)
             translations.extend(batch_translations)
 
         return translations
@@ -81,9 +70,7 @@ class MultiTranslator(pydantic.BaseModel):
         source_lang: str = "auto",
     ) -> pd.DataFrame:
         sentences_list = list(sentences)
-        target_langs_list = (
-            [target_langs] if isinstance(target_langs, str) else target_langs
-        )
+        target_langs_list = [target_langs] if isinstance(target_langs, str) else target_langs
 
         translations = {}
         for lang in target_langs_list:

@@ -55,9 +55,7 @@ class TextRenderer(BaseModel, arbitrary_types_allowed=True):
         return ImageFont.truetype(str(self.font_path), self.font_size)
 
     @staticmethod
-    def calculate_dimension(
-        content_size: int, margin: int, padding: int, min_size: int
-    ) -> int:
+    def calculate_dimension(content_size: int, margin: int, padding: int, min_size: int) -> int:
         """Calculate dimension with margins and padding."""
         return max(content_size + 2 * (padding + margin), min_size)
 
@@ -87,12 +85,8 @@ class TextRenderer(BaseModel, arbitrary_types_allowed=True):
     ) -> tuple[int, int]:
         """Calculate final image dimensions based on text bounds."""
         left, top, right, bottom = bounds
-        width = self.calculate_dimension(
-            right - left, self.margin_x, padding, self.image_width
-        )
-        height = self.calculate_dimension(
-            bottom - top, self.margin_y, padding, self.image_height
-        )
+        width = self.calculate_dimension(right - left, self.margin_x, padding, self.image_width)
+        height = self.calculate_dimension(bottom - top, self.margin_y, padding, self.image_height)
         return width, height
 
     def create_image(self, text: str) -> Image.Image:
@@ -402,7 +396,7 @@ class MultilingualSafeBench(Dataset):
             "müssen wir ablehnen|"
             "können wir nicht gestatten|"
             "ist nicht gestattet"
-        )
+        ),
     }
 
     def __init__(
@@ -444,10 +438,14 @@ class MultilingualSafeBench(Dataset):
             case _:
                 raise ValueError(f"Unsupported query type: {self.query_type}")
 
-    def to_list(self, return_flat_list: bool = False) -> list[str] | list[dict[str, str | Image.Image]]:
+    def to_list(
+        self, return_flat_list: bool = False
+    ) -> list[str] | list[dict[str, str | Image.Image]]:
         """Convert dataset to list format."""
         progress = tqdm(self, desc=f"Loading {self.language} Dataset")
         return [
-            text if return_flat_list else ({"text": text, "image": image} if image else {"text": text})
+            text
+            if return_flat_list
+            else ({"text": text, "image": image} if image else {"text": text})
             for text, image in progress
         ]

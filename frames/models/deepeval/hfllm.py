@@ -23,9 +23,7 @@ class HuggingFaceLLMDeepEval(DeepEvalBaseLLM):
         self.hf_model.load()
 
     def generate(self, prompt: str, schema: BaseModel) -> BaseModel:
-        output_dict = self.pipeline(
-            prompt, prefix_allowed_tokens_fn=self._parse_schema(schema)
-        )
+        output_dict = self.pipeline(prompt, prefix_allowed_tokens_fn=self._parse_schema(schema))
         output = output_dict[0]["generated_text"][len(prompt) :]
         json_result = json.loads(output)
         return schema(**json_result)

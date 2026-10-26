@@ -44,9 +44,7 @@ def histplot_and_save(
         *args: Additional positional arguments passed to sns.histplot
         **kwargs: Additional keyword arguments passed to sns.histplot
     """
-    sns.histplot(
-        df, x=x, hue=hue, palette="colorblind", multiple="stack", *args, **kwargs
-    )
+    sns.histplot(df, x=x, hue=hue, palette="colorblind", multiple="stack", *args, **kwargs)
     save_plot_and_show(name, df)
 
 
